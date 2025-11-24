@@ -56,50 +56,45 @@ export default function Web() {
             : jsonData.nodes || [];
 
           // Helper to map kind -> type recursively and fix other property mismatches
-          const mapKindToType = (node: any): any => {
+          const mapKindToType = (node: any, parent: any = null): any => {
             if (!node) return node;
+
+            // Map 'kind' to 'type'
             if (node.kind && !node.type) {
               node.type = node.kind;
             }
-            // Map 'text' to 'characters' for TEXT nodes if 'characters' is missing
-            if (node.type === "TEXT") {
-              if (node.text && !node.characters) {
-                node.characters = node.text;
-              }
-              // Polyfill styledTextSegments if missing
-              if (!node.styledTextSegments && node.style) {
-                node.styledTextSegments = [
-                  {
-                    characters: node.characters || "",
-                    start: 0,
-                    end: (node.characters || "").length,
-                    fontSize: node.fontSize || node.style.fontSize,
-                    fontName: node.fontName || {
-                      family: node.fontFamily || node.style.fontFamily,
-                      style: String(node.fontWeight || node.style.fontWeight || "Regular") + (node.italic ? " Italic" : ""),
-                    },
-                    fontWeight: node.fontWeight || node.style.fontWeight,
-                    textDecoration: node.textDecoration || node.style.textDecoration,
-                    textCase: node.textCase || node.style.textCase,
-                    lineHeight: node.lineHeight || node.style.lineHeight,
-                    letterSpacing: node.letterSpacing || node.style.letterSpacing,
-                    fills: node.fills || node.style.fills,
-                    textStyleId: node.textStyleId || node.style.textStyleId,
-                    fillStyleId: node.fillStyleId || node.style.fillStyleId,
-                    listOptions: node.listOptions || node.style.listOptions,
-                    indentation: node.indentation || node.style.indentation,
-                    hyperlink: node.hyperlink || node.style.hyperlink,
-                    openTypeFeatures: node.openTypeFeatures || node.style.openTypeFeatures || {},
-                  },
-                ];
+
+            // Add parent reference
+            if (parent) {
+              node.parent = parent;
+            }
+
+            // Infer layoutPositioning based on parent's layoutMode
+            // If parent has layoutMode: "NONE", children should be absolutely positioned
+            if (!node.layoutPositioning && parent) {
+              if (parent.layoutMode === "NONE") {
+                node.layoutPositioning = "ABSOLUTE";
+              } else if (parent.layoutMode === "HORIZONTAL" || parent.layoutMode === "VERTICAL") {
+                node.layoutPositioning = "AUTO";
               }
             }
 
-            // Copy style properties to node level if missing
+            // Set isRelative for containers with layoutMode: NONE
+            // This provides positioning context for absolutely positioned children
+            if (node.layoutMode === "NONE" && node.children && node.children.length > 0) {
+              node.isRelative = true;
+            }
+
+            // Promote 'visible' from style to top level if missing
+            if (node.style?.visible !== undefined && node.visible === undefined) {
+              node.visible = node.style.visible;
+            }
+
+            // Copy style properties to node level (must happen before other processing)
             if (node.style) {
               const styleProps = [
                 "fills", "strokes", "strokeWeight", "strokeAlign",
-                "effects", "opacity", "blendMode"
+                "effects", "opacity", "blendMode", "visible"
               ];
               styleProps.forEach(prop => {
                 if (node[prop] === undefined && node.style[prop] !== undefined) {
@@ -108,9 +103,102 @@ export default function Web() {
               });
             }
 
-            if (node.children && Array.isArray(node.children)) {
-              node.children.forEach(mapKindToType);
+            // Convert cornerRadii object to cornerRadius number
+            if (node.cornerRadii && !node.cornerRadius) {
+              const radii = node.cornerRadii;
+              // Take the top-left value, or max if all different
+              const values = [radii.topLeft, radii.topRight, radii.bottomRight, radii.bottomLeft];
+              // If all same, use that value, otherwise use topLeft
+              const allSame = values.every(v => v === values[0]);
+              node.cornerRadius = allSame ? values[0] : radii.topLeft;
             }
+
+            // Handle TEXT nodes
+            if (node.type === "TEXT") {
+              // Map 'text' to 'characters' if missing
+              if (node.text && !node.characters) {
+                node.characters = node.text;
+              }
+
+              // Ensure fontName is an object with family and style
+              if (!node.fontName && node.fontFamily) {
+                let styleStr = "";
+                if (node.fontWeight) {
+                  // Convert weight to style string
+                  const weightMap: { [key: number]: string } = {
+                    100: "Thin",
+                    200: "Extra Light",
+                    300: "Light",
+                    400: "Regular",
+                    500: "Medium",
+                    600: "Semi Bold",
+                    700: "Bold",
+                    800: "Extra Bold",
+                    900: "Black"
+                  };
+                  styleStr = weightMap[node.fontWeight] || String(node.fontWeight);
+                }
+                if (node.italic) {
+                  styleStr = styleStr ? styleStr + " Italic" : "Italic";
+                }
+                if (!styleStr) {
+                  styleStr = "Regular";
+                }
+
+                node.fontName = {
+                  family: node.fontFamily,
+                  style: styleStr
+                };
+              }
+
+              // Polyfill styledTextSegments if missing
+              if (!node.styledTextSegments) {
+                const segment: any = {
+                  characters: node.characters || "",
+                  start: 0,
+                  end: (node.characters || "").length,
+                };
+
+                // Add all text styling properties
+                if (node.fontSize) segment.fontSize = node.fontSize;
+                if (node.fontName) segment.fontName = node.fontName;
+                if (node.fontWeight) segment.fontWeight = node.fontWeight;
+                if (node.textDecoration) segment.textDecoration = node.textDecoration;
+                if (node.textCase) segment.textCase = node.textCase;
+                if (node.lineHeight) segment.lineHeight = node.lineHeight;
+                if (node.letterSpacing) segment.letterSpacing = node.letterSpacing;
+                if (node.fills) segment.fills = node.fills;
+                if (node.textStyleId) segment.textStyleId = node.textStyleId;
+                if (node.fillStyleId) segment.fillStyleId = node.fillStyleId;
+                if (node.listOptions) segment.listOptions = node.listOptions;
+                if (node.indentation) segment.indentation = node.indentation;
+                if (node.hyperlink) segment.hyperlink = node.hyperlink;
+
+                segment.openTypeFeatures = node.openTypeFeatures || {};
+
+                node.styledTextSegments = [segment];
+              }
+
+              // Ensure textAutoResize exists
+              if (!node.textAutoResize) {
+                node.textAutoResize = "NONE";
+              }
+            }
+
+            // Map Figma's primaryAlign and counterAlign to primaryAxisAlignItems and counterAxisAlignItems
+            // The Figma JSON REST API may use primaryAlign/counterAlign but the backend expects primaryAxisAlignItems/counterAxisAlignItems
+            if (node.primaryAlign) {
+              node.primaryAxisAlignItems = node.primaryAlign;
+            }
+            if (node.counterAlign) {
+              node.counterAxisAlignItems = node.counterAlign;
+            }
+
+            // Recursively process children (pass current node as parent)
+            if (node.children && Array.isArray(node.children)) {
+              node.children.forEach((child: any) => mapKindToType(child, node));
+            }
+
             return node;
           };
 
