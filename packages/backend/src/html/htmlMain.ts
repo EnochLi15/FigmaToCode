@@ -429,6 +429,7 @@ const convertNode = (settings: HTMLSettings) => async (node: SceneNode) => {
         settings,
       );
     default:
+      console.log("Unsupported node:", node);
       addWarning(`${node.type} node is not supported`);
       return "";
   }

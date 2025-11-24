@@ -7,7 +7,13 @@ import {
   SettingsChangedMessage,
 } from "types";
 
-export const postBackendMessage = figma.ui.postMessage;
+export const postBackendMessage = (message: any) => {
+  if (typeof figma !== "undefined" && figma.ui) {
+    figma.ui.postMessage(message);
+  } else {
+    console.log("[Backend Message]:", message);
+  }
+};
 
 export const postEmptyMessage = () =>
   postBackendMessage({ type: "empty" } as EmptyMessage);

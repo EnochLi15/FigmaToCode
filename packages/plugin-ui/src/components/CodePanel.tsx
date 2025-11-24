@@ -75,7 +75,7 @@ const CodePanel = (props: CodePanelProps) => {
   // If the selected framework is Tailwind and a prefix is provided then transform the code.
   const prefixedCode =
     selectedFramework === "Tailwind" &&
-    settings?.customTailwindPrefix?.trim() !== ""
+      settings?.customTailwindPrefix?.trim() !== ""
       ? applyPrefixToClasses(code, settings?.customTailwindPrefix)
       : code;
 
@@ -168,6 +168,7 @@ const CodePanel = (props: CodePanelProps) => {
                 // Regular toggle buttons for other options
                 return (
                   <FrameworkTabs
+                    key={preference.propertyName}
                     options={preference.options}
                     selectedValue={
                       (settings?.[preference.propertyName] ??
@@ -187,27 +188,26 @@ const CodePanel = (props: CodePanelProps) => {
           {/* Styling preferences with custom prefix for Tailwind */}
           {(stylingPreferences.length > 0 ||
             selectedFramework === "Tailwind") && (
-            <SettingsGroup
-              title="Styling Options"
-              settings={stylingPreferences}
-              selectedSettings={settings}
-              onPreferenceChanged={onPreferenceChanged}
-            >
-              {selectedFramework === "Tailwind" && (
-                <TailwindSettings
-                  settings={settings}
-                  onPreferenceChanged={onPreferenceChanged}
-                />
-              )}
-            </SettingsGroup>
-          )}
+              <SettingsGroup
+                title="Styling Options"
+                settings={stylingPreferences}
+                selectedSettings={settings}
+                onPreferenceChanged={onPreferenceChanged}
+              >
+                {selectedFramework === "Tailwind" && (
+                  <TailwindSettings
+                    settings={settings}
+                    onPreferenceChanged={onPreferenceChanged}
+                  />
+                )}
+              </SettingsGroup>
+            )}
         </div>
       )}
 
       <div
-        className={`rounded-lg ring-green-600 transition-all duration-200 overflow-clip ${
-          syntaxHovered ? "ring-2" : "ring-0"
-        }`}
+        className={`rounded-lg ring-green-600 transition-all duration-200 overflow-clip ${syntaxHovered ? "ring-2" : "ring-0"
+          }`}
       >
         {isCodeEmpty ? (
           <EmptyState />
@@ -216,7 +216,7 @@ const CodePanel = (props: CodePanelProps) => {
             <SyntaxHighlighter
               language={
                 selectedFramework === "HTML" &&
-                settings?.htmlGenerationMode === "styled-components"
+                  settings?.htmlGenerationMode === "styled-components"
                   ? "jsx"
                   : selectedFramework === "Flutter"
                     ? "dart"

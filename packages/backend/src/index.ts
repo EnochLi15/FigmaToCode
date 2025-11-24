@@ -4,4 +4,5 @@ export { tailwindMain } from "./tailwind/tailwindMain";
 export { swiftuiMain } from "./swiftui/swiftuiMain";
 export { composeMain } from "./compose/composeMain";
 export { run } from "./code";
+export { convertToCode } from "./common/retrieveUI/convertToCode";
 export * from "./messaging";
