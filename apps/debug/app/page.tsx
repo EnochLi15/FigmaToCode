@@ -113,6 +113,15 @@ export default function Web() {
               node.cornerRadius = allSame ? values[0] : radii.topLeft;
             }
 
+            // Convert padding object to individual padding properties
+            // Figma JSON has padding as { left, right, top, bottom } but backend expects paddingLeft, paddingRight, etc.
+            if (node.padding && typeof node.padding === 'object') {
+              if (node.padding.left !== undefined) node.paddingLeft = node.padding.left;
+              if (node.padding.right !== undefined) node.paddingRight = node.padding.right;
+              if (node.padding.top !== undefined) node.paddingTop = node.padding.top;
+              if (node.padding.bottom !== undefined) node.paddingBottom = node.padding.bottom;
+            }
+
             // Handle TEXT nodes
             if (node.type === "TEXT") {
               // Map 'text' to 'characters' if missing
