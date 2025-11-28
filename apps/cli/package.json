@@ -1,0 +1,19 @@
+{
+    "name": "cli",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "convert": "tsx src/index.ts",
+        "build": "tsup"
+    },
+    "dependencies": {
+        "@types/node": "^20.11.24",
+        "backend": "workspace:*",
+        "tsx": "^4.7.1",
+        "types": "workspace:*",
+        "typescript": "^5.3.3"
+    },
+    "devDependencies": {
+        "tsup": "^8.5.0"
+    }
+}
